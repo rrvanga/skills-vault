@@ -1,0 +1,41 @@
+# Starship prompt — tuned for Konsole + JetBrainsMono Nerd Font
+# Copy to ~/.config/starship.toml (validate: python3 -c "import tomllib; tomllib.load(open('...starship.toml','rb'))")
+
+format = """
+$os\
+$time\
+$directory\
+$git_branch\
+$git_status\
+$python\
+$cmd_duration\
+$line_break\
+$character"""
+
+[character]
+success_symbol = "❯ "
+error_symbol = "❯ "
+
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+style = "bold cyan"
+
+[git_branch]
+style = "bold purple"
+
+[git_status]
+style = "bold green"
+
+[time]
+disabled = false
+time_format = "%H:%M"
+format = "[$time](dimmed)"
+style = "dimmed"
+
+[cmd_duration]
+min_time = 3000
+format = "took [$duration](dimmed yellow)"
+
+[python]
+format = "via [$symbol$version]($style) "
