@@ -1,0 +1,27 @@
+{
+  "providers": {
+    "local-gpu": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "sk-local",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false
+      },
+      "models": [
+        {
+          "id": "qwen3-4b-q4km.gguf",
+          "name": "Qwen3-4B-Instruct Q4_K_M (local)",
+          "reasoning": true,
+          "input": ["text"],
+          "compat": {
+            "supportsDeveloperRole": true,
+            "supportsReasoningEffort": false
+          },
+          "contextWindow": 8192,
+          "maxTokens": 4096
+        }
+      ]
+    }
+  }
+}

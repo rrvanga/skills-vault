@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# pilm — sandboxed local-model coding agent wrapper (bubblewrap).
+# Runs the pi coding agent (which talks to a local GGUF llama-server on :8080)
+# inside a bwrap mount namespace so the agent CANNOT write files outside its
+# own workspace. The whole filesystem is read-only except:
+#   - the workspace  (~/sandbox-lm)   -> the only place the model creates files
+#   - ~/.pi          -> pi's own config + session state (models.json, sessions/)
+# /tmp is a private empty tmpfs so the agent can't tamper with the real /tmp.
+#
+# This directly neutralizes the destructive-input failure mode (agent clobbers
+# an input file it should only have read) seen in local-llm-benchmark runs.
+#
+# Usage:
+#   pilm -p "<task prompt>"                      # run pi sandboxed, local-gpu default
+#   PILM_WORKSPACE=/path/to/ws pilm -p "..."     # override workspace (must pre-exist logic ok; dir auto-created)
+#   # pass through any other args pi accepts; cwd is set to the workspace.
+set -euo pipefail
+
+WORKSPACE="${PILM_WORKSPACE:-$HOME/sandbox-lm}"
+mkdir -p "$WORKSPACE"
+trap ':' EXIT   # reserved cleanup
+
+exec bwrap \
+  --die-with-parent \
+  --ro-bind / / \
+  --bind "$HOME/sandbox-lm" "$HOME/sandbox-lm" \
+  --bind "$HOME/.pi" "$HOME/.pi" \
+  --tmpfs /tmp \
+  --dev /dev \
+  --proc /proc \
+  --dev-bind /sys /sys \
+  --chdir "$WORKSPACE" \
+  --unshare-pid \
+  --unshare-ipc \
+  --unshare-uts \
+  --setenv PILM_WORKSPACE "$WORKSPACE" \
+  -- /usr/bin/env node \
+     "$HOME/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/cli.js" \
+     "$@"
