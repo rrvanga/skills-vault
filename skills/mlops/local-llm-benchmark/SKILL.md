@@ -35,7 +35,7 @@ The full loop is: **HF fit-check → download (resume-safe) → server swap → 
    `llama-server -m model.gguf -ngl 99 --host 127.0.0.1 --port 8080 -c 8192`
    Confirm via `curl :8080/v1/models` that the NEW model name is live.
 4. **Engine numbers** from the server log: `grep -E "prompt eval|eval time|decode"` → decode t/s (generation tokens), prefill t/s, wall time.
-5. **Agent tool-use test:** run the `pi` CLI (`~/.local/bin/pi`) against a planted-bug harness in `/tmp/pi-bench/` (invoice.py returns `rate*hours`, skipping overtime math; correct total `$113,537.50`). A model is an *agent* only if it closes read→edit→bash and the on-disk fix verifies (`python3 invoice.py` returns the correct total). Recording session JSONL lives under `~/.pi/agent/sessions/<dir>/` (19KB+ for a real tool trail).
+5. **Agent tool-use test:** use the **direct OpenAI-loop harness** (`references/openai-toolcall-harness.md`) against the planted-bug harness (invoice.py returns `rate*hours`, skipping overtime math; correct total `$113,537.50`). A model is an *agent* only if it closes read→edit→bash and the on-disk fix verifies (`python3 invoice.py` returns the correct total). The pi CLI was removed from this box (2026-08); pi-harness-gotchas.md is kept as historical record only.
 6. **JSONL forensics:** read the session transcript — count read/edit/write calls, detect retry loops on already-applied patches, note whether bash verification ran. This is where you distinguish "real agent" from "narrates but can't use tools" (zero tool calls → disqualified).
 7. **Verdict** = aligned winner (complete + honest + fast), not just fastest. A fix that's retried-without-verify is clumsier than one that's clean.
 
@@ -54,8 +54,10 @@ After a model swap a previous `llama-server` often stays bound to :8080; the new
 
 ## Data / state
 
-- Benchmark scratch notes live at `/tmp/gemma-bench.md`; models + llama.cpp build in `/tmp/`.
-- `pi --help` shows the agent CLI; the pi harness is `/tmp/pi-bench/`.
+- Models + llama.cpp build live in `~/models/` and `~/.local/llama-b10488/` (server binary: `~/.local/llama-b10488/llama-server`).
+- Standalone local model = Gemma 12B Q4_K_M on :8080 (`-ngl 20 -ctk/ctv q8_0`, ~3.4GB VRAM); watchdog boots the same GGUF on :8081 on demand.
+- Benchmark scratch notes live at `/tmp/gemma-bench.md`.
+- The pi harness is gone; the current tool-use harness is the direct OpenAI-loop one (`references/openai-toolcall-harness.md`).
 
 ## References
 - **[vendor-patched-builds.md](references/vendor-patched-builds.md)** — running GGUFs whose arch isn't in upstream llama.cpp (find the vendor's patch repo, clone pinned tag, git am, build server)
