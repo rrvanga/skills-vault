@@ -15,6 +15,10 @@ at the top — edit there, don't rewrite the file).
 - **Fetch failure must NOT be silent.** Non-zero exit + stderr message →
   scheduler raises an error alert. A broken watchdog failing silently is worse
   than no watchdog — you'd assume "no deals" forever.
+- **Bounded retry on fetch** (2026-08-21): CC category pages occasionally
+  stall past `--max-time` at peak hours (exit 28 at 08:01). `fetch()` now
+  retries `FETCH_RETRIES=2` extra attempts with `RETRY_BACKOFF=(5, 10)`s;
+  after that it still raises → non-zero exit alert. Fail-loud preserved.
 - **Size sanity check after fetch.** CC returns HTTP 200 with junk for
   wrong-but-valid-looking category IDs. Guard: `if len(raw) < 50_000: alert
   and exit 1`. (See SKILL.md pitfall on the 200-with-unrelated-products trap.)
