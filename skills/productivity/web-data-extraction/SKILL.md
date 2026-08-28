@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [web-scraping, api-discovery, nextjs, ssr, curl]
-    related_skills: [web-price-research, dogfood]
+    related_skills: [dogfood]
 ---
 
 # Web Data Extraction
@@ -50,5 +50,19 @@ Extract live structured data from a website when the data isn't in the initial s
 - **Model/entity naming may differ from what a requester typed.** Before reporting, dump all unique names matching the relevant prefix and map requested → actual name (e.g. `kimi-k3` may only exist as `kimi-k3-max`). Flag non-exact matches instead of silently substituting.
 - **Rounded vs precise:** leaderboards usually display rounded ratings; if you round, say so.
 
+## Retail price scraping (Amazon.ca / Best Buy CA)
+
+E-commerce research follows a different ladder than SSR/API discovery:
+
+1. **Mobile endpoints often expose HTML the desktop site walls off.** Amazon.ca's `/gp/aw/s` (search) and `/gp/aw/d/<ASIN>` (detail) pages server-render for mobile UAs with no captcha, where desktop crawls get blocked.
+2. **Never trust search-card prices** — Amazon cards show '?' placeholders. The ONLY authoritative number is the BuyBox price in the detail page's `twister-plus-buying-options-price-data` JSON blob. Always: collect ASINs from search, then read prices from detail pages.
+3. **If a retailer's HTML is bot-blocked, probe for a JSON API variant** (Best Buy CA: `/api/v2/json/search?query=…` + Chrome UA + JSON accept works where the HTML 403s/Akamai-blocks).
+4. **Bullet-level proof bar for claims** ("does this product have feature X?"): page-wide raw mention counts are noise — cross-sell carousels leak other products' specs. The feature must appear in the product's OWN spec bullets: `<span class="a-list-item">` regex on desktop layouts, tag-strip + `html.unescape` + context-grep fallback on mobile layouts.
+5. **Architecture beats sweeps:** before hunting a SKU variant (e.g. a barebone), check whether the hardware makes it structurally possible — soldered LPDDR5 means a no-RAM variant cannot exist, no matter what listings appear.
+6. **Prove the page parsed before trusting an empty result:** a healthy-looking 200 with large body can still fail a too-strict filter — count `data-asin` / result nodes, then loosen (collect all `B0…` ASINs, filter at the detail stage).
+
+Full recipes, headers, and pitfalls: `references/retail-price-scraping.md`.
+
 ## References
 - `references/lmarena-leaderboard.md` — worked example: LMArena text-arena category Elo (endpoints, real slug map, regex, naming quirks).
+- `references/retail-price-scraping.md` — Amazon.ca mobile endpoint + BuyBox + Best Buy CA JSON recipes, bullet-level proof bar, barebone-possibility check.

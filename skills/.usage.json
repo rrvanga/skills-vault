@@ -1503,16 +1503,16 @@
     "archived_at": null,
     "created_at": "2026-08-14T16:07:38.427180+00:00",
     "created_by": "agent",
-    "last_patched_at": "2026-08-18T00:15:32.989706+00:00",
+    "last_patched_at": "2026-08-28T05:35:23.532148+00:00",
     "last_reused_patch_generation": 4,
-    "last_used_at": "2026-08-18T00:16:46.364330+00:00",
-    "last_viewed_at": "2026-08-18T00:16:46.352812+00:00",
-    "patch_count": 4,
-    "patch_generation": 4,
+    "last_used_at": "2026-08-28T05:30:41.736343+00:00",
+    "last_viewed_at": "2026-08-28T05:30:41.722079+00:00",
+    "patch_count": 8,
+    "patch_generation": 8,
     "pinned": false,
     "state": "active",
-    "use_count": 9,
-    "view_count": 9
+    "use_count": 12,
+    "view_count": 12
   },
   "web-price-research": {
     "archived_at": null,
