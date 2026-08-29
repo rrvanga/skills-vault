@@ -14,6 +14,8 @@ from pathlib import Path
 
 
 def render(html_path, png_path, width=1400, viewport_h=3400):
+    html_path = Path(html_path)
+    png_path = Path(png_path)
     subprocess.run(
         [
             "chromium",

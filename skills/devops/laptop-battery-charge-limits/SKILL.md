@@ -66,3 +66,4 @@ Passwordless sudo is NOT enabled and the agent never handles passwords. When roo
 - `echo 100 | sudo tee .../charge_control_end_threshold` = one-shot "fill it for the trip" override; it lasts until next boot (tmpfiles re-applies the band).
 - Write values via `printf '40' | sudo tee` — bare `echo` can add a newline that some ECs reject; `set -e` scripts must guard against that.
 - A staged script in `/tmp` dies on reboot (`/tmp` is volatile) — if the user reboots before running it, re-stage.
+- `upower -i` caches STATIC battery props (charge thresholds) when the daemon starts and never refreshes them — it can report a stale band (e.g. old 75/80) long after sysfs was changed. Ground truth is ALWAYS `/sys/class/power_supply/BAT0/charge_control_{start,end}_threshold`; cross-check there before reporting a band, and trust sysfs over upower on conflict. (Caught live: upower said 75/80 while sysfs+tmpfiles said 40/60.)
