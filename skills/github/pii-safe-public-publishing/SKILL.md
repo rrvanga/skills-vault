@@ -56,3 +56,7 @@ while honoring a hard "no PII ever" constraint. Proven on `~/.hermes/skills` →
 - **Guard scans regex patterns you listed.** A NOVEL PII shape (new username, new email domain)
   passes. Say so honestly; offer private visibility as belt-and-braces; keep the scrub list
   extensible.
+- **Work-diary entries are PII-adjacent in a personal public repo.** PR numbers, private repo
+  paths, live config dumps, timestamped backup names, and session forensics read as internal
+  mail to a stranger — and often leak identity. In curated content repos (TIL/blog), strip the
+  saga framing or remove the entry outright; see the `content-repo-curation` skill.
