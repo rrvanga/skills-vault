@@ -66,3 +66,4 @@ Full recipes, headers, and pitfalls: `references/retail-price-scraping.md`.
 ## References
 - `references/lmarena-leaderboard.md` — worked example: LMArena text-arena category Elo (endpoints, real slug map, regex, naming quirks).
 - `references/retail-price-scraping.md` — Amazon.ca mobile endpoint + BuyBox + Best Buy CA JSON recipes, bullet-level proof bar, barebone-possibility check.
+- If BOTH the API and SSR routes are bot-walled (e.g. Cloudflare 403 like Memory Express), the next rung is a real engine: headless playwright-core + system chromium — see `hermes-capability-setup` → "Unattended / at-boot browser".
