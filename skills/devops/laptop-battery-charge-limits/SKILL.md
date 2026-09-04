@@ -77,12 +77,67 @@ The latch ends hands-free with a 2-minute root systemd timer running
 - `AC=1 && cap < start && status != Charging` → LATCHED → write `0/100`, sleep 1, write the
   band (exactly the proven manual cure), log, write an event file.
 - Band drifted (`≠` expected) → restore it **only while `cap < end`**. Writing a band while
-  capacity ≥ end is the ORIGINAL latch cause — never do it.
+  capacity ≥ end is the ORIGINAL latch cause — never do it *without* a watchdog. With the
+  watchdog live, applying the band above end is deliberately SAFE: any resulting latch is
+  cured within 2 min. (That is exactly why the installer halts a fill at 86% instead of
+  letting the pack run to 100%.)
+- Ceiling insurance: band armed (25/60) but still `Charging` at `cap ≥ end` → re-assert the
+  end threshold so the pack never sails past the ceiling. **Skipped when band is disarmed
+  (0/100)** — that is a deliberate calibration fill, hands off.
 - 15-min quiet window after any action (no write storms); event file is read by the
   user-level Telegram monitor so the user gets "⚡ watchdog recovered charging" alerts.
+- Testable: `BAT`, `AC`, `OWNER_DIR` are env-overridable — simulate all branches against a
+  fake sysfs tree (8/8 PASS: no-op on battery, healthy charging, latch recover, band drift
+  restore, drift-above-end no-op, ceiling enforce, calibration hands-off, backoff).
 
 Install via the two-person sudo rule below (staged script, user runs ONE sudo command).
 Rollback: `sudo systemctl disable --now battery-band-watchdog.timer` + delete the script.
+
+## Calibration & the "push it to 100%" question
+
+If the user asks "is it good to push it to 100 and let it drain once in a while?" — the
+lithium answer beats folklore:
+
+- Li-ion/NMC have **no memory effect** (that's NiCd folklore). A rare, deliberate 100% fill
+  does not "refresh" the cell.
+- Its one real purpose is **fuel-gauge recalibration**: the gauge re-baselines `energy_full`
+  on a real top-off + deep-ish drain (measured: 118.2 → 70.6 Wh re-learn in one reboot).
+- Cadence: every **6–8 weeks** is plenty. Never *store* at 100% — calendar aging at high
+  state of charge is the real, measurable cost (this is exactly what the 25/60 band avoids).
+  Never drain below ~20% on an aged pack.
+- The watchdog is calibration-safe by design: fill (Charging) = hands-off; hold at 100
+  (Full/Not charging above end) = untouched; drain below the floor = re-arms the band.
+  To calibrate: disarm to 0/100, charge to 100, drain to ~60, re-arm 25/60.
+
+## Two-person sudo rule (no passwordless sudo)
+
+Threshold files are root-owned; the agent must NOT handle passwords. Stage every command
+and script under `/tmp`, hand the user exactly ONE sudo command, then read back and verify
+the sysfs values yourself. Scripts over raw one-liners — raw commands confuse ("What does
+this even mean").
+
+### Desktop variant — user logged into a GUI
+
+When the user offers sudo access on the desktop ("I'm logged in") but the agent's
+computer_use/cua-driver runs headless (spawned by the gateway with no DISPLAY), do NOT
+fight the display plumbing. Instead launch the installer in a terminal ON the user's real
+X display — the sudo prompt appears there, the USER types the password, and the installer
+tees output to a file the agent reads for verification:
+
+```bash
+# find the session: loginctl list-sessions; type=wayland; leader PID
+# find Xwayland display (:1 typically) and its xauth token
+env DISPLAY=:1 XAUTHORITY=/run/user/<uid>/xauth_XXXXXX \
+    XDG_RUNTIME_DIR=/run/user/<uid> \
+    DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/<uid>/bus \
+    QT_QPA_PLATFORM=xcb \
+    setsid konsole --hold -e bash /tmp/installer.sh &
+```
+
+The installer script itself runs `sudo bash /tmp/battery_watchdog_install.sh 2>&1 | tee
+/tmp/battery_install_result.txt` and ends with `read -p "Press Enter to close..."` so the
+window stays open for the user. The agent verifies afterwards by reading the tee file
+(timer enabled/active, thresholds 25/60, status, watchdog event).
 
 ## Charging complaint triage (fast path)
 
@@ -96,14 +151,8 @@ Rollback: `sudo systemctl disable --now battery-band-watchdog.timer` + delete th
 5. Band tuning: pick the band on the **current** `energy_full` gauge — a % band means
    different Wh reserve after a re-learn. User's machine settled on 25/60 after the gauge
    re-learned to 70.6 Wh (≈17–42 Wh reserve). Never apply a band while the pack is at/near
-   100% — that is the latch recipe.
-
-## Two-person sudo rule (no passwordless sudo)
-
-Threshold files are root-owned; the agent must NOT handle passwords. Stage every command
-and script under `/tmp`, hand the user exactly ONE sudo command, then read back and verify
-the sysfs values yourself. Scripts over raw one-liners — raw commands confuse ("What does
-this even mean").
+   100% **without a watchdog armed** — that is the latch recipe. With the watchdog installed,
+   applying above end is safe (recovery ≤ 2 min).
 
 ## Pitfalls
 
@@ -111,7 +160,8 @@ this even mean").
 - Capacity% jumps on gauge re-learn — verify with `energy_now` deltas.
 - AC replug and reboot do NOT clear the EC latch — threshold rewrite does.
 - `ucsi-source-psy` = source-role port, not the charger input.
-- Writing thresholds while cap ≥ end re-creates the latch.
+- Writing thresholds while cap ≥ end re-creates the latch (only safe once a watchdog exists,
+  with ≤ 2 min auto-recovery; never standalone).
 - `upower` reports stale data — trust sysfs.
 - Applied band changes live in sysfs are immediate and root-owned — plan the blast radius.
 
@@ -120,5 +170,7 @@ this even mean").
 - `scripts/charge_probe.sh` — energy_now delta probe (charging truth).
 - `scripts/pd_check.sh` — charger/port path dump for USB-C PD machines.
 - `scripts/battery-band-watchdog.sh` — root watchdog: EC-latch auto-recovery + band enforce.
+- `templates/watchdog_install.sh` — canonical two-person installer (enable-timer-FIRST
+  before live band apply; tee'd RESULT for agent verification).
 - `references/charge-diagnostics-and-ec-latch.md` — full 2026-09-02 session detail:
   measured numbers, the false-victory trap, corrected ucsi reading, watchdog design.
