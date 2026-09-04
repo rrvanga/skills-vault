@@ -515,14 +515,14 @@
     "created_by": null,
     "last_patched_at": null,
     "last_reused_patch_generation": 0,
-    "last_used_at": "2026-09-02T16:07:58.164236+00:00",
-    "last_viewed_at": "2026-09-02T16:07:58.154419+00:00",
+    "last_used_at": "2026-09-04T16:04:48.541611+00:00",
+    "last_viewed_at": "2026-09-04T16:04:48.524296+00:00",
     "patch_count": 0,
     "patch_generation": 0,
     "pinned": false,
     "state": "active",
-    "use_count": 10,
-    "view_count": 10
+    "use_count": 11,
+    "view_count": 11
   },
   "github-issue-to-pr": {
     "archived_at": null,
@@ -530,14 +530,14 @@
     "created_by": null,
     "last_patched_at": null,
     "last_reused_patch_generation": 0,
-    "last_used_at": "2026-08-13T17:06:49.550952+00:00",
-    "last_viewed_at": "2026-08-13T17:06:49.542748+00:00",
+    "last_used_at": "2026-09-04T04:50:27.388339+00:00",
+    "last_viewed_at": "2026-09-04T04:50:27.369861+00:00",
     "patch_count": 0,
     "patch_generation": 0,
     "pinned": false,
     "state": "active",
-    "use_count": 1,
-    "view_count": 1
+    "use_count": 3,
+    "view_count": 3
   },
   "github-issues": {
     "archived_at": null,
@@ -1070,14 +1070,14 @@
     "created_by": null,
     "last_patched_at": "2026-09-02T02:58:22.054579+00:00",
     "last_reused_patch_generation": 1,
-    "last_used_at": "2026-09-02T16:07:58.169393+00:00",
-    "last_viewed_at": "2026-09-02T16:07:58.159420+00:00",
+    "last_used_at": "2026-09-04T16:04:48.547698+00:00",
+    "last_viewed_at": "2026-09-04T16:04:48.536577+00:00",
     "patch_count": 1,
     "patch_generation": 1,
     "pinned": false,
     "state": "active",
-    "use_count": 2,
-    "view_count": 2
+    "use_count": 5,
+    "view_count": 5
   },
   "nano-pdf": {
     "archived_at": null,
@@ -1160,14 +1160,14 @@
     "created_by": null,
     "last_patched_at": "2026-08-14T19:37:01.641485+00:00",
     "last_reused_patch_generation": 1,
-    "last_used_at": "2026-09-01T20:51:13.309330+00:00",
-    "last_viewed_at": "2026-09-01T20:51:13.302853+00:00",
+    "last_used_at": "2026-09-04T04:50:27.393714+00:00",
+    "last_viewed_at": "2026-09-04T04:50:27.383112+00:00",
     "patch_count": 1,
     "patch_generation": 1,
     "pinned": false,
     "state": "active",
-    "use_count": 22,
-    "view_count": 22
+    "use_count": 23,
+    "view_count": 23
   },
   "openhue": {
     "archived_at": null,
