@@ -40,6 +40,10 @@ Good verification targets:
 - User documentation: https://hermes-agent.nousresearch.com/docs/
 - Source tree: https://github.com/NousResearch/hermes-agent
 
+## Custom-Layer Decision Gate (before building custom tooling)
+
+If a task would build or sustain custom scripts/layers/automation around Hermes, run `references/custom-layer-gate.md` FIRST. Absence in this skill is not evidence of absence in the product — a negative claim ("no built-in") requires captured evidence from `hermes --help`, subcommand help, docs, and/or the source tree, recorded where the decision is made.
+
 ## Quick Start
 
 ```bash
@@ -104,6 +108,7 @@ Profiles use `~/.hermes/profiles/<name>/` with the same layout. When a profile i
 | Contributing code: adding tools, slash commands, tests | `references/contributor-guide.md` |
 | delegate_task "capped at N" reports | `references/delegate-task-concurrency-diagnosis.md` |
 | "Can app X use my Nous Portal subscription/OAuth?" | `references/portal-auth-for-third-party-apps.md` |
+| About to build/sustain CUSTOM tooling (scripts, layers, automation) | `references/custom-layer-gate.md` |
 
 Two theming rules that hold even without loading the reference: **you apply skins yourself** (`hermes config set display.skin <name>` — every surface repaints live within ~a second; don't tell the user to run `/skin`), and **to tweak one color, edit the ACTIVE skin** (`hermes skin set <key> <hex>`) — never fork `default`, which drops the palette and resets the background.
 

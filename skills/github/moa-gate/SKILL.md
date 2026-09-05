@@ -41,6 +41,7 @@ Gate content PRs with the multi-agent orchestration backend (**moa:default** = d
 - **Verdict ≠ exit code**: REQUEST_CHANGES exits 0. Parse the text.
 - **Background it**: moa:default spawns 3 concurrent models; foreground runs blow the terminal timeout.
 - `git branch -d` after `--delete-branch` may report `not found` — gh already removed it; cosmetic, move on.
+- **Claimed a product feature 'didn't exist' at some date? Verify in that product's git history** before merging (`git log --diff-filter=A -- <file>`, `git show <hash>`). 2026-09-04: the gated docs wrongly asserted Hermes had no backup tooling when a custom layer was built; primary sources (upstream repo) showed `hermes backup`/`import` since 2026-04-11 (`fa7cd44b92`) and `--quick` snapshots + `/snapshot` since 2026-04-13 (`381810ad50`). The gate caught it — fix the doc, not the gate.
 - Reasoning models + tiny `max_tokens` probes return empty content — irrelevant to the gate (it runs 8K+); don't mistake it for a failure.
 - Gate prompt must demand: verdict as exact last line, factual accuracy vs **primary sources** (specs, arXiv, press, vendor docs — not blogs), broken markdown/formatting, repo doc conventions; scope the review to the PR's files.
 - If the gate outputs a session_id line after the verdict, the verdict line is still the last *content* line — strip the trailing `session_id: ...` when parsing.

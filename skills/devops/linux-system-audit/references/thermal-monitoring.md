@@ -46,3 +46,40 @@ unless a threshold is crossed, so a healthy run burns zero tokens and delivers n
 2. `THERMAL_TEST=1` run: alert prints and lists ALL monitored sensors.
 3. Fire through the scheduler once (`cronjob action='run'`): `status: ok` +
    silent outcome proves cron plumbing can find and execute the script.
+
+## Diagnosing "why is the laptop hot" (investigation procedure)
+
+Monitoring watches known thresholds; a heat COMPLAINT is a timeline-diff
+investigation. "Hot recently" = find what CHANGED since the onset, not a
+current-state snapshot.
+
+1. **Timeline anchors first.** `uptime -s` (boot), `ps -eo pid,ppid,lstart,etime,comm,args`
+   for the top consumers, binary install times via `stat -c '%y'`, and
+   `systemctl --user status <unit>` ActiveSince. Compare process start times and
+   binary mtimes against when the heat started — the culprit is the process tree
+   whose start matches the onset (e.g. a desktop app updated the same day and
+   launched at the start of the heat window).
+2. **Sum the WHOLE process tree, not the top line.** Electron/desktop stacks
+   spread 10–25% CPU across main + renderers + zygotes + the serves they spawn;
+   the single top `ps` row misleads. Walk ppid up to the root (`/proc/self/exe`
+   children parent to the desktop main) and add all leaves.
+3. **Rule out the battery limiter explicitly.** `BAT*/status` + capacity against
+   the charge band: "Not charging" AT the band ceiling = limiter working, NOT a
+   heat source. State the exclusion so it isn't re-investigated.
+4. **Check thermal-management daemons.** `systemctl is-active is-enabled thermald
+   power-profiles-daemon` — both inactive/absent = no active policy; cooling is
+   EC fan auto + Intel HWP only.
+5. **dGPU residency check.** `nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,power.draw,memory.used`
+   — any VRAM allocation (llama-server with `--device Vulkan1` = NVIDIA on this
+   box) keeps the Max-Q dGPU awake ("Video Memory: Active") → sustained chassis
+   heat even at 0% util and low wattage. On a direct-heatpipe laptop that is real,
+   measurable heat at idle CPU load.
+6. **Journal the NVRM assertions.** `journalctl -b | rg -i 'nvrm|PRH|thermal limit'`
+   — repeated "PRH failed to update thermal limit!" means the NVIDIA ↔ EC thermal
+   coordination is failing; treat as supporting evidence for dGPU heat, not the
+   whole story.
+7. **Warm-at-idle signature.** pkg ~70°C at load ~0.1 with fans on high PWM
+   (>=120%) means the EC is fighting real background heat — a steady load, not a
+   transient spike. Fans near max at near-zero load prove the complaint, don't
+   explain it away.
+8. Clean up probe files in /tmp via `gio trash` after reporting.

@@ -6,6 +6,7 @@ OpenCode Go (`https://opencode.ai/zen/go/v1`) is an OpenAI-compatible subscripti
 
 - **Base URL:** `https://opencode.ai/zen/go/v1` (OpenAI chat-completions shape). The plain `https://opencode.ai/v1` path 403s.
 - **Auth:** `Authorization: Bearer <key>`. Key lives in `~/.hermes/.env` as `OPENCODE_GO_API_KEY` (plus optional `OPENCODE_GO_BASE_URL`).
+- **Session header (required since 2026-09-06):** every request to OpenCode Go must carry `x-opencode-session: <opaque stable ID>` — constant per conversation (one per Hermes conversation, or per-script for cron/curl callers). Missing it may error after 09/06. Hermes builds post-2026-09-03 send it on main + aux calls automatically; raw curl/urllib must set it explicitly (e.g. `-H "x-opencode-session: sess-probe"`). A browser UA does NOT exempt a request.
 - **Cloudflare pitfall:** a bare `urllib` request gets `HTTP 403 Forbidden, error code 1010` (Cloudflare browser-signature block). Fix: send a browser `User-Agent` header (e.g. `Mozilla/5.0 ... Chrome/126`). With a browser UA the same request succeeds.
 - **Model list:** `GET /v1/models` returns IDs like `deepseek-v4-pro`, `deepseek-v4-flash`, `qwen3.8-max`, `qwen3.7-plus`, `kimi-k2.7-code`, `kimi-k3`, `glm-5.2`, `minimax-m3`, `gpt-5.6-luna`, `grok-4.5`, `hy3`, `mimo-v2.5-pro`.
 - **Reasoning models:** responses include `message.reasoning_content` and `usage.completion_tokens_details.reasoning_tokens` — reasoning consumes completion budget, so keep `max_tokens` generous (512 was too small; 2048 works).

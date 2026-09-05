@@ -14,8 +14,17 @@ metadata:
 ## When to Use
 
 Any task involving the `cronjob` tool: create/update/pause/remove/list scheduled
-jobs, wire a script to a schedule, build a watchdog or briefing, resume work after
+schedule, wire a script to a schedule, build a watchdog or briefing, resume work after
 a gateway restart, or diagnose "job didn't fire / fired wrong / fired empty".
+
+## This machine's standing schedule
+
+A snapshot of this host's active jobs lives in `references/schedule-inventory.md`
+(job name, id, schedule, script, delivery) — use it for ORIENTATION, not authority.
+**Source of truth is `~/.hermes/cron/jobs.json`** (per-job `enabled`, `schedule`,
+`last_run_at`, `next_run_at`). Re-read jobs.json before stating any schedule as
+fact, and edit jobs only via the `cronjob` tool. Jobs were being created/edited
+recently (updated_at ticks on every run), so never trust a stale snapshot.
 
 ## Job anatomy (the fields that matter)
 
@@ -49,6 +58,16 @@ a gateway restart, or diagnose "job didn't fire / fired wrong / fired empty".
 
 - Prompts must be SELF-CONTAINED — each tick is a fresh session with no chat
   context; state lives in files, repos, or `context_from` outputs.
+- **Change-gating suppresses RUNS, not deliveries**: a `monitor_script` agent
+  job skips the LLM when the hash is unchanged, but ANY change fires the agent
+  and its reply is delivered verbatim. A benign self-healed change (fallback
+  recovered, model removed, verification passed) is NORMAL operation — the
+  prompt must end such ticks by replying with exactly `[SILENT]`, the built-in
+  delivery-suppression marker (scheduler `SILENT_MARKER` /
+  `_is_cron_silence_response`; accepted as whole response, first/last line, or
+  bare `SILENT`/`NO_REPLY`). Reserve loud reports for genuine anomalies:
+  ALL-DEAD with no recovery, a newly priced paid model, an action the user
+  must know about. Never rely on hash-gating alone to keep a monitor quiet.
 - Agent runs have iteration/time budgets: long steps (builds, multi-model review
   gates, 10-min CLI calls) must launch in BACKGROUND EARLY with full output
   redirected to a file, then be polled while other work proceeds. A foreground
@@ -89,6 +108,19 @@ a gateway restart, or diagnose "job didn't fire / fired wrong / fired empty".
 - **Human-readable output**: for report jobs, merge duplicate provider/endpoint
   rows, round to K/M units, keep only meaningful numbers, drop four-decimal
   costs — the user reads these at 07:30, not a debug console.
+
+- **`hermes backup -q` ≠ a zip file**: quick mode writes a labeled snapshot DIR under `~/.hermes/state-snapshots/<UTCts>-<label>/` (restore = in-session `/snapshot restore <id>`); `-o`/`-l` zip flags are ignored with `-q`. Built-in auto-prunes globally to keep=20 (rmtree) and the updater sets keep=1 at update time. Scripts that expect a .zip will falsely report failure even though the CLI exited 0 — verify by snapshot presence (newest `*-<label>` dir), not output path.
+- **Verifying a silent-on-normal prompt made it into the job**: after
+  `hermes cron edit <job_id> --prompt "$(cat /tmp/prompt.txt)"` (write the new
+  prompt to a temp file first — long multiline prompts with backticks survive
+  command substitution cleanly), confirm the edit landed by dumping the job's
+  stored prompt from `~/.hermes/cron/jobs.json` (one-line python) and asserting
+  the marker count (`[SILENT]` occurrences) and absence of the old mandate
+  string. A successful `cron edit` exit code does not prove the new text is
+  the one stored.
+
+- **`hermes cron doctor` ALWAYS exits 0**: findings print to stdout ("Cron doctor found N issue(s)…") but the CLI rc is swallowed — never gate a wrapper on doctor's return code; parse stdout ("no issues" = clean). Verified 2026-09-05.
+- **Dormancy sentinel — house pattern for "job silently not running"** (`~/.hermes/scripts/cron_sentinel.py`): a no_agent script job (every 6h) that runs the built-in `hermes cron doctor` (failed runs, overdue `next_run_at` beyond 15 min grace, delivery/config issues) AND diffs live job ids against `~/.hermes/cron/.cron-sentinel-baseline.json`, alerting (message + exit 1) when an expected job vanishes from jobs.json — the classic silent-dormancy case doctor can't see (it only iterates CURRENT jobs). Silent on normal; baseline auto-seeds on first run; a removed job alerts exactly once, then the baseline adopts the new set (intentional removals self-confirm).
 
 ## Verify
 

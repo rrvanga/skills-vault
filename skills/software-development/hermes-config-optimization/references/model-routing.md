@@ -72,11 +72,12 @@ profile is set; `_openai_discovery_base_url` only special-cases openai providers
 
 ```bash
 source ~/.hermes/.env   # never echo the key
-curl -s --max-time 30 https://opencode.ai/zen/go/v1/models -H "Authorization: Bearer ${OPENCODE_GO_API_KEY}"
+curl -s --max-time 30 https://opencode.ai/zen/go/v1/models -H "Authorization: Bearer ${OPENCODE_GO_API_KEY}" -H "x-opencode-session: sess-probe"
 # per candidate (tiny max_tokens → cheap availability probe):
 for m in glm-5 deepseek-v4-pro kimi-k2.7-code qwen3.8-max; do
   curl -s --max-time 30 https://opencode.ai/zen/go/v1/chat/completions \
     -H "Authorization: Bearer ${OPENCODE_GO_API_KEY}" -H "Content-Type: application/json" \
+    -H "x-opencode-session: sess-probe" \
     -d "{\"model\":\"$m\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":5}" | head -c 200; echo
 done
 ```
@@ -84,7 +85,8 @@ done
 All four above returned `chat.completion` objects (2026-08) — the Go subscription key
 covers the whole catalog, not just the default model. Note: this curl works without a
 special User-Agent (curl sends one by default); bare `urllib` needs a browser UA
-(see `references/opencode-go-provider.md`).
+(see `references/opencode-go-provider.md`). Since 2026-09-06 all probes must also
+send `x-opencode-session` with one stable ID per probe script/conversation.
 
 ## Model catalog (OpenCode Go, 2026-08)
 

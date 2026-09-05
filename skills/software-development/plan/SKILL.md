@@ -214,6 +214,7 @@ Decide:
 - File organization
 - Dependencies needed
 - Testing strategy
+- **Built-in audit:** if the plan proposes custom tooling/scripts/automation, run the custom-layer gate FIRST (hermes-agent skill → `references/custom-layer-gate.md`): built-in > thin wrapper > custom. Record captured evidence for any "no built-in exists" claim in the plan itself.
 
 ### Step 4: Write Tasks
 

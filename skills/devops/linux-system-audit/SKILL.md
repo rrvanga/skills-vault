@@ -50,3 +50,6 @@ Run `scripts/system_sweep.sh` (read-only, writes `/tmp/sysaudit/*.txt`), then re
 
 ## Scripts
 - `scripts/system_sweep.sh` — full read-only six-front probe; writes `/tmp/sysaudit/{sys,svc,upd,sec,hermes,hw}.txt`. Run it, read the files, synthesize.
+
+## References
+- `references/thermal-monitoring.md` — sensor source inventory, thermal_watch.py watchdog design, AND the "why is the laptop hot" diagnosis procedure (timeline-diff, process-tree sums, dGPU residency, daemon checks).
