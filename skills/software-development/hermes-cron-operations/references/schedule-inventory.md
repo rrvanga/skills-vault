@@ -4,7 +4,7 @@ Snapshot from `~/.hermes/cron/jobs.json` on 2026-09-05 (jobs.json `updated_at` 2
 **Source of truth is jobs.json itself (per-job `schedule`, `enabled`, `last_run_at`, `next_run_at`).**
 Re-read it before stating any schedule as fact; edit jobs only via the `cronjob` tool, never by hand.
 
-20 jobs total.
+Roster changes since snapshot: `daily reminders` **REMOVED** 2026-09-05 (user completed both items); `local-llm-backup-watchdog` **PAUSED** 2026-09-05 (user decision). **19 jobs remain** active-or-paused in jobs.json as of the 2026-09-05 10:26 pause.
 
 ## Agent jobs (LLM runs each tick)
 - **Morning Brief** (`a0a8d90095ec`) — 07:00 daily · `morning_context.py` feeds context · deliver origin
@@ -13,7 +13,7 @@ Re-read it before stating any schedule as fact; edit jobs only via the `cronjob`
 - **Go adaptive monitor** (`81a8bc241220`) — 08:00–22:00 every 2h (even hours) · model-routing decisions
 - **autonomy-window** (`75066396690b`) — 14:30 daily · autonomous work block
 - **bot-bridge-watch** (`11e09d6a513c`) — every 2m · peer-bot message pump (git queue)
-- **daily reminders** (`879e27ac4880`) — 10:00 daily
+- ~~**daily reminders** (`879e27ac4880`)~~ — **REMOVED 2026-09-05** — user confirmed BOTH reminders complete (oddbunch check + iron clothes); per the job's own removal logic.
 - **battery-band-monitor** (`f18d453cb6ee`) — every 360m · root battery-band watchdog report · deliver telegram
 - **sleuth-judge-sweep** (`71217ad4cf99`) — every 360m · sleuth review layer (judge cron 6h)
 
@@ -26,7 +26,7 @@ Re-read it before stating any schedule as fact; edit jobs only via the `cronjob`
 - **thermal-watch** (`e70270d8b772`) — every 5m · `thermal_watch.py` · CPU warn 92 / crit 95, 2-consecutive-sample sustained rule
 - **skillspector weekly delta watch** (`9a5c5a983c6a`) — Monday 09:00 · `skillspector_watch.sh` · deliver telegram
 - **skills vault sync** (`f8cbdde34dae`) — 09:45 daily · `skills_vault_sync.sh`
-- **local-llm-backup-watchdog** (`17f0ef271f94`) — every 5m · `local_backup_watchdog.sh` · llama-server on-demand policy
+- **local-llm-backup-watchdog** (`17f0ef271f94`) — every 5m · `local_backup_watchdog.sh` · llama-server on-demand policy · **PAUSED 2026-09-05 by user (probe not wanted; llama stays OFF, manual start only; script kept on disk as manual lever; resume via `cronjob` tool)**
 - **daily-hermes-backup** (`7cbfaba35056`) — 06:30 daily · `hermes-backup-quick.sh`
 - **cron-sentinel** (`9371802cb37a`) — 08:00 daily · `cron_sentinel.py` · NOTE: had never run as of 2026-09-05 (last_run_at null; first scheduled 08:00 that day)
 
