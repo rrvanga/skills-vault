@@ -26,6 +26,12 @@ A snapshot of this host's active jobs lives in `references/schedule-inventory.md
 fact, and edit jobs only via the `cronjob` tool. Jobs were being created/edited
 recently (updated_at ticks on every run), so never trust a stale snapshot.
 
+For building monitor/watchdog jobs: `references/adaptive-monitor-pattern.md` is
+the canonical worked example (the 'Go adaptive monitor'). It also covers the
+FAST-PROBE sibling — a tight-cadence (~30 min) cheap probe (`go_probe.py`) that
+only checks the configured fallback, distinct from the slow 2h catalog monitor
+(`adaptive_monitor.py`), shrinking the worst-case recovery window.
+
 ## Job anatomy (the fields that matter)
 
 - `schedule`: `'30m'` / `'every 2h'` / cron expr `'0 9 * * 1-5'` / ISO one-shot.

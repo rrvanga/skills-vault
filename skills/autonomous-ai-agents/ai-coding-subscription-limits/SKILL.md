@@ -41,4 +41,4 @@ Task class: "how much quota did we use", "what are the limits", "which plan keep
 
 ## References
 - `references/github-copilot-billing.md` — full 2026 Copilot AI-credits system: plan allowances, complete model pricing tables (OpenAI/Anthropic/Google/others), budget hierarchy, CLI cost levers, client version minimums.
-- `references/opencode-go-quota.md` — OpenCode Go limits, state.db query pattern, per-model rates, report scripts.
+- `references/opencode-go-quota.md` — OpenCode Go limits, state.db query pattern, per-model rates, report scripts, and the fallback-health probe (curl each `-free` model with an `x-opencode-session` header; 429 ≠ 200 — the adaptive monitor catches unreachability but NOT throttling, so probe before relying on the wired fallback, and on a first 429 switch immediately never retry).

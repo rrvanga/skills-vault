@@ -65,6 +65,55 @@ action happen only on real change (fallback model died, catalog gained models).
   a dead upstream can't stall the whole tick.
 - `enabled_toolsets` on the job: restrict to what the acting agent needs
   (e.g. `["web","terminal","file"]`) to cut per-fire token overhead.
+- Go endpoint probes must send an `x-opencode-session: sess-*` header. Bare
+  `curl`/urllib probes WITHOUT it return HTTP 400 even when the model is
+  healthy — a 400 here is a malformed-request signature, NOT a dead model.
+  Any ad-hoc re-probe of a Go free tier must include the header, or you'll
+  conclude models are down when they are fine and mis-fire. (The primary
+  opencode-go provider is session-mandatory; free/zen tier flakes on it.)
+- A `needfix`/re-wire flag must mean "configured fallback is GENUINELY
+  unhealthy", not "configured != preference-order leader". Both are often
+  healthy and the leader flips on transient probe ordering; firing on that
+  divergence is the exact churn you're trying to kill. Gate re-wire on the
+  configured model's OWN health plus a consecutive-fail threshold
+  (`CFAIL_THRESHOLD`, e.g. 2): a model must read non-healthy on N consecutive
+  ticks before `needfix=yes` — a transient slow/failed read scores as the
+  1st strike, never a fire. Persist the per-model counter in state.
+- Persist decision counters (bans/cfalls) in ONE save AFTER the decision
+  block that mutates them. Saving `bans`/`cfalls` to state BEFORE the
+  `needfix` block increments them silently drops the latest value → the
+  threshold never accumulates across ticks and needfix never fires. Put the
+  save at the end of `main()`, keyed on `if changed or cfalls:`.
+
+## Local-fallback layer: prefer Hermes's REQUEST-LEVEL failover over a polling watchdog
+
+When the goal is "boot the local LLM only when the cloud actually fails during a task",
+check the built-in seam BEFORE building or keeping a watchdog cron. Hermes already fails
+over request-level: `fallback_providers` in config.yaml is an ordered list the agent
+walks via `try_activate_fallback` (_re) when an in-flight request errors — a polling
+thread is not needed to DECIDE WHEN to use a fallback. A watchdog cron only adds value
+when it KEEPS a resource warm (paying residency) so the request-time failover lands
+instantly. Those two goals are in irreducible tension: instant failover requires a warm
+hold (GPU residency / polling); zero-idle requires paying the cold-start (boot latency)
+at the moment of failure. State the tradeoff to the user explicitly, don't assume one.
+
+For the zero-idle choice (recommended when GPU residency is the user's priority), wire the
+boot into the fallback-activation path, not a cron:
+- Add `_maybe_boot_local_gemma(fb)` inside `try_activate_fallback` in
+  `agent/chat_completion_helpers.py`, called after the `_should_skip_fallback_candidate`
+  gate and before the client build.
+- It must be a hard NO-OP for any non-local leg (discriminate `provider==custom` AND
+  `base_url` contains the local port), block only while cold, and NEVER raise — a failed
+  boot must fall through to the existing exhausted-fallback path, never wedged the chain.
+- Use a standalone script (`~/.hermes/scripts/boot_local_gemma.sh`) that reuses the
+  verified server invocation: atomic `mkdir` boot-lock (wait on an in-progress boot rather
+  than double-spawn), and append `9>&-` to the daemonized `setsid nohup ... &` redirections
+  (else the inherited flock fd never releases — see the local-llm-fallback skill's
+  flock-inheritance bug, which applies to ANY daemonized boot helper, not just a watchdog).
+- Verify WITHOUT powering the GPU: monkeypatch the helper path to a sandbox shell double
+  (writes a marker, exits 0), call the hook with a local/:port entry, assert marker + rc 0.
+- Keep the old watchdog cron PAUSED (reversible), not deleted, until the hook is proven in
+  real use.
 
 ## Verification done before going live
 
