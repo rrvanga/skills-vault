@@ -24,6 +24,18 @@ description: Audit/review the user's CA/BC finance-plan docs.
 5. Check adjacent steps for missed consideration: an institution named as the brokerage is often also the natural FX/conversion venue. If the plan routes USD→CAD via a third party (Wise / Norbert's gambit) while naming a brokerage with its own no-FX-fee product, flag that gap explicitly.
 6. Answer with exact citations (file + quoted line), then offer a concrete patch for approval. Do not edit docs in the same turn — the user approves diffs first.
 
+## Statement-based spending analysis (the 8-statement workflow)
+
+When the user says they 'already gave you statements', they arrived as Telegram attachments and live in `~/.var/app/org.telegram.desktop/data/TelegramDesktop/tdata/temp_data/` (filenames like `2026-06-29.pdf`, `Jul 31, 2026 - Aug 31, 2026.pdf`, `July_2026.pdf`) — and Hermes also keeps copies in `~/.hermes/cache/documents/` as `doc_<hash>_<name>.pdf`. Hermes' doc cache may be missing the newest one (e.g. the June card dump failed at 08:45). Rebuild from the Telegram temp_data copies with pdftotext -layout: TD card statements parse as `JUN 9 JUN 10 <desc> $59.46` with negatives as `-$250.00`; Wealthsimple as date/desc/amount lines with `–$` prefixes.
+
+- Rent verification pattern: TD chequing debits `DOWNTOWN SUITES RLS` 2,250 monthly (Jun 1 / Jul 2 / Aug 4); a concurrent WS `Withdrawal: Home expense –2,250` can LOOK like a second rent payment but is an internal transfer — it arrives in TD as `WS Investments INV +2,250` the same day. Always cross-check internal transfers across accounts before double-counting.
+- Reconcile every statement to its closing balance before quoting totals: TD bank closing balances from the last row with a balance; card statements via `prev + purchases − payments = new`; WS via running balance math.
+- $2,850 rent in `bc-cost-of-living-budget.md` is a placeholder — the real rent is $2,250 (verified in statements). Never re-derive the placeholder as fact.
+
+### Pipeline archive (as of 2026-09-06)
+
+User chose **"Not yet — just save the pipeline for later"**: full parse/reconcile/render pipeline archived (cold; no cron, no budget wiring) at `~/Documents/Finance/statements/` — `pdfs/` (8 canonical PDFs), `scripts/` (`rebuild.py` → `rebuild.json`, `analyze.py` → `final.json`, `render_png.py` → `spending-summary.png`), `scripts/dumps/` (text dumps + `parsed.json` the parsers consume), `output/` (last verified run), `README.md` (run sequence + parsing facts). Scripts hardcode `/tmp/stmts/` paths — reactivate by copying back to `/tmp/stmts/` or updating paths. Dependencies: pymupdf, pdftotext -layout, matplotlib Agg. If asked to wire a monthly budget/ritual, approve design first (user is design-first; cron does not exist for this yet).
+
 ## Pitfalls
 
 - Auditing only the vault summary for a coverage question misses the real plan — the master action plan in `~/Documents/Personal/` holds the defaults and exclusions; grep both trees before concluding.
