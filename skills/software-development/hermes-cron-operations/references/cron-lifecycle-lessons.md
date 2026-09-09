@@ -59,3 +59,34 @@ from their output dirs. Preserve per-item completion/removal semantics in the
 merged prompt ("remove only when ALL items are done; keep firing for the rest")
 — the originals each had self-removal-on-completion logic that must survive the
 merge. One merged job = one LLM call/day instead of two.
+
+## 5. A standing shopping/monitoring directive baked into a generative job's PROMPT
+
+The strongest "why does X keep happening every day" case is not a card or
+script at all: a recurring AGENT job (e.g. an `autonomy-window` daily mission
+slot) whose own prompt lists a recurring task as a candidate/step. Even with
+zero ready cards on the kanban board, that directive re-picks the work EVERY
+tick, so an action the user explicitly asked to stop (GPU price re-checks)
+resurfaced daily.
+
+Full kill procedure for "stop this recurring autonomous work":
+1. Read the job's FULL prompt from `~/.hermes/cron/jobs.json` (python-dump the
+   record; the dict's `id` key is `id`, not `job_id`) — find the offending
+   directive (candidate list, step list, or parked-idea example).
+2. Write the scrubbed prompt to a temp file and
+   `hermes cron edit <job_id> --prompt "$(cat /tmp/prompt.txt)"` (survives
+   backticks/quotes). Renumber any candidate/step list if a numbered item was
+   removed.
+3. VERIFY the edit landed by reading the prompt back from jobs.json and
+   asserting the mandate string is ABSENT and the numbering is correct — a
+   success exit code is not proof the right text was stored.
+4. Sweep ALL layers for the topic keyword and assert each clean: kanban board
+   (`hermes kanban list`), every job's prompt in jobs.json, and
+   `~/.hermes/scripts/`. Archive the anchoring kanban card(s); confirm no
+   active cards with that topic remain. A hit in any layer means the work can
+   resurface.
+5. Confirm the job is still `enabled` and the schedule intact, then leave it
+   to run — the next tick is the real proof the fix holds.
+
+The `cronjob` tool has no `show` verb — read `jobs.json` directly for full-
+prompt forensics.
