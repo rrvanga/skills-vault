@@ -53,3 +53,4 @@ Run `scripts/system_sweep.sh` (read-only, writes `/tmp/sysaudit/*.txt`), then re
 
 ## References
 - `references/thermal-monitoring.md` — sensor source inventory, thermal_watch.py watchdog design, AND the "why is the laptop hot" diagnosis procedure (timeline-diff, process-tree sums, dGPU residency, daemon checks).
+- `references/drm-display-diagnostics.md` — display/GPU diagnostics: NVIDIA dummy-EDID signature (NVD/1990/640×480 = real EDID never arrived → physical retest), nvidia-smi 'Driver/library version mismatch' = reboot-pending signature (not a broken install), kscreen-doctor probe chain, and this box's GPU topology (externals dGPU-wired, no mux).

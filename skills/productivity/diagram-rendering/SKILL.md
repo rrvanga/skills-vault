@@ -33,6 +33,7 @@ Render visual deliverables — architecture diagrams, posters, charts, dashboard
 
 ## Pitfalls
 - **Blind rendering** — never assume the image is right; run the Pillow checks every time.
+- **Crop color must match the design's flat bg** — `render_and_verify.py` strips rows that match the background color; its default assumes the light `#eef1f6` palette. For dark/themed designs, set the crop bg to the theme's bg (e.g. RGB(16,20,24) for `#101418`) in a copy of the script, or the crop/verify trims nothing or crops into content.
 - **Clipping** — content taller than the viewport silently clips; render oversized and crop, never render exactly.
 - **Determinism → commit-on-change.** Do NOT embed timestamps/dates in the rendered HTML/PNG. A timestamp changes every run, so a `git diff --quiet` change-detector commits daily with a mere date bump. Keep the render byte-identical for identical state; let git history record *when*. (Same lesson as the llmcost no-change-day bug.)
 - **PII masking (hard rule, user-corrected).** All generated visuals must mask PII: no real names, usernames, emails, hostnames, IPs, chat/user IDs, API-key names/values, token values, or `/home/<user>` paths. Use generic labels ("identity redacted"). Run a targeted grep on the generated HTML for name/email/`/home/`/key patterns before committing.
