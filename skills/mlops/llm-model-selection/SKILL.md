@@ -37,7 +37,10 @@ per-model check + one-line recommendation, no new cron job).
    the provider's per-model **req/5h / week / month limits** + pricing + model-ID→endpoint
    map, in plain HTML `<table>` (`<tr><td>Model</td><td>req/5h</td>…`). The old `/zen/go`
    page 404s now (moved 2026-08). Caps are promotional ("2×") and changeable — re-fetch,
-   don't trust memory: when the boost ended, Flash fell 63,300→31,650 and Luna 4,100→2,050.
+   don't trust memory: when the boost ended, Flash fell 63,300→31,650 and Luna 4,100→2,050; re-verified 2026-09-19,
+ the **currently published** caps are much lower again — Flash **13,000**, Pro **1,050**,
+ Luna 2,050, glm-5.3-flash 6,320, kimi-k2.7-code 1,350, kimi-k3 **110**. Never quote a
+ cap from this file without re-reading the live table first.
    Live model-ID list also at API `/models` (`opencode.ai/zen/go/v1/models`). Recipe +
    live table in `references/opencode-go-live-caps.md`.
 2. **Artificial Analysis** (artificialanalysis.ai) — composite Intelligence Index,
@@ -61,12 +64,13 @@ per-model check + one-line recommendation, no new cron job).
 ## Routing heuristics
 
 - **Default / general**: the balanced workhorse = highest IQ per unit of quota+latency.
-  (Aug 2026: DeepSeek V4 Pro — IQ 53.2, 7.15s, 3450 req/5h — beat the flash-candidates.)
+  (Aug 2026: DeepSeek V4 Pro — IQ 53.2, 7.15s, 1,050 req/5h — beat the flash-candidates,
+  but its own cap is only $15/mo ⇒ **~24 cards/month**; it is a rationed lane, not a default.)
 - **Hard coding / deep reasoning**: highest composite IQ + coding Elo, but RATION it
   (low req/5h, slow). (Aug 2026: Kimi K3 — IQ 59.7, Briefcase 1540.8 — but 110 req/5h,
   51s reasoning.)
 - **High-volume / cron / summarization**: the cheap fast near-unlimited model.
-  (DeepSeek V4 Flash, ~31.6k req/5h.)
+  (DeepSeek V4 Flash, 13,000 req/5h, $30/mo cap = the widest lane available.)
 - **Fast bulk drafting**: fastest + cheapest. (GPT-5.6 Luna: 155 tok/s, $0.047/task,
   2050 req/5h.)
 - **Always** cross-check the benchmark winner against its req/5h cap + latency + cost —
@@ -74,6 +78,17 @@ per-model check + one-line recommendation, no new cron job).
 
 ## Pitfalls
 
+- **Go limits are PER MODEL, not one shared $12/$30/$60 pool** (verified against the live
+  `/docs/go/` page 2026-09-19). Each model gets 20% of its own monthly figure per 5h, 50%
+  per 7d, 100% per 30d. Consequence: a single shared-pool percentage **flatters a
+  concentrated workload** — the kanban board's traffic reads 27.3% of the legacy pool but
+  is actually **53.5% of `deepseek-v4-flash`'s own $30 cap**. Always price a routing
+  decision as `$/card → cards-before-cap`, never as "% of the pool". Live per-model
+  read-out: `python3 ~/.hermes/scripts/token_usage_report.py` (the `Per-model 30d` line).
+- **A routing decision is only half-made until it names the CAP it burns.** Kanban task
+  classes → pins, with per-card cost and cards-before-cap, live in the
+  `hermes-kanban-operations` skill ("Class → model rule") — check there before inventing
+  a new mapping.
 - **"Smart Model" auto-routing does not exist in OpenCode Go.** Config lookalikes are
   Hermes's own `smart_model_routing.enabled: false` and the MoA preset (both
   underperform — MoA aggregator `qwen3.8-max` is 26.9s / 160 req/5h). Keep disabled.
