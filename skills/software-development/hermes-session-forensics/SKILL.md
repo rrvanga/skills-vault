@@ -30,6 +30,12 @@ Recover what was said/agreed in an earlier session when memory and the current c
    - sysfs values, `/etc` drop-ins, `~/.hermes/cron/jobs.json`, kanban db
    - **Did the user run a staged command?** `grep -c "<script>" ~/.bash_history` — 0 hits = never run, even if the assistant already handed them the command.
 
+## Cost/token accounting (when the question is "which session/message burned tokens")
+
+Sessions table holds the REAL API token counts (input/output/cache_read columns; `token_count` on messages rows is unpopulated — don't use it). `reasoning_content` column on messages can be the largest stored char sink (invisible in normal views) — SUM it if the question is storage size. Tool-role rows store NULL content: use `SUM(COALESCE(length(content),0))` for char totals. Exact-duplicate replays (same content, many ids) inflate stored chars but cost pennies on the wire.
+
+**Pricing — distinguish TOKENS from DOLLARS before alarming anyone.** The meter lives in `~/.hermes/scripts/token_usage_report.py` (GO_RATES dict, $ per 1M tokens incl. cache_read; comment says what was verified when). Price a session: `calls_in/1e6*rate_in + out/1e6*rate_out + cache/1e6*rate_cache`. Cache_read is ~50x cheaper than input, so giant cache-replay totals (millions of tokens) usually price out to a few cents. Ultra-lightweight session databases but the model is what matters — rerun the same numbers with a pro model's rate to see why routing a chatty task to flash saved real money. On this box, the EVERYTHING-ever grand total across all sessions was ~$19 at flash rates; one long 6-day session ran $0.20. Chart big token numbers with matplotlib for the user (they like quantified visuals) but always pair the token chart with the dollar figure.
+
 ## Pitfalls
 
 - `messages.timestamp` is a **unix epoch** — always convert with `datetime(timestamp,'unixepoch','localtime')`.

@@ -38,8 +38,12 @@ Gate content PRs with the multi-agent orchestration backend (**moa:default** = d
 9. **Verify** — `gh pr view N --json state,mergedAt,mergeCommit`; then **read back the merged artifact on main** (grep the fixed string, check EOF) — never trust the MERGED flag alone. `git fetch -p origin`, delete local branch if it lingers, remove `/tmp/moa-*` artifacts.
 
 ## Pitfalls
-- **Verdict ≠ exit code**: REQUEST_CHANGES exits 0. Parse the text.
-- **Background it**: moa:default spawns 3 concurrent models; foreground runs blow the terminal timeout.
+- Verdict ≠ exit code: REQUEST_CHANGES exits 0. Parse the text.
+- Background it: moa:default spawns 3 concurrent models; foreground runs blow the terminal timeout.
+- **0-byte output ≠ dead process**: background gates block-buffer stdout, so the log can sit at 0 bytes while the run is healthy (2026-09-30: wrote nothing for 4+ min, then flushed the full verdict). Liveness-check with `process(action='wait', session_id=..., timeout=180)` (requires **session_id**, not process_id) or `/proc/<pid>` — never by output-file size.
+- In cron mode the launch command must not use `nohup`/`disown`/`setsid` (lifecycle guard blocks them) or `rm` (dangerous-command filter: "delete in root path") — the shell `>` redirect already truncates the out file; launch with `terminal(command=..., background=true, notify_on_complete=true)`.
+- `APPROVE` verdicts can still carry `[NIT]` lines; when they are text-only doc fixes, apply them in one small conventional commit before merging (no re-gate needed — the tree moves toward the gate's stated ideal).
+- Pre-fix intermediate history may contain PII blobs that only a **squash** merge (never `--no-ff`/rebase) keeps off main — state the caveat in the note/PR body.
 - `git branch -d` after `--delete-branch` may report `not found` — gh already removed it; cosmetic, move on.
 - **Claimed a product feature 'didn't exist' at some date? Verify in that product's git history** before merging (`git log --diff-filter=A -- <file>`, `git show <hash>`). 2026-09-04: the gated docs wrongly asserted Hermes had no backup tooling when a custom layer was built; primary sources (upstream repo) showed `hermes backup`/`import` since 2026-04-11 (`fa7cd44b92`) and `--quick` snapshots + `/snapshot` since 2026-04-13 (`381810ad50`). The gate caught it — fix the doc, not the gate.
 - Reasoning models + tiny `max_tokens` probes return empty content — irrelevant to the gate (it runs 8K+); don't mistake it for a failure.
