@@ -13,7 +13,7 @@ metadata:
 
 # MOA Gate — multi-agent review before merge
 
-Gate content PRs with the multi-agent orchestration backend (**moa:default** = deepseek-v4-pro + glm-5.2 → qwen3.8-max, 3 concurrent models) before `gh pr merge --squash`. The gate cross-checks claims against primary sources and returns a verdict as the **last line of its output**.
+Gate content PRs with the multi-agent orchestration backend (**moa:default**) before `gh pr merge --squash`. Check what the preset actually resolves to before you rely on it — `hermes config get moa.presets.default` (reference models can be disabled, leaving a single aggregator). The gate cross-checks claims against primary sources and returns a verdict as the **last line of its output**.
 
 ## When to use
 - Before merging any PR that must be MOA-gated (user convention: content PRs are MOA-gated)
@@ -40,6 +40,8 @@ Gate content PRs with the multi-agent orchestration backend (**moa:default** = d
 ## Pitfalls
 - Verdict ≠ exit code: REQUEST_CHANGES exits 0. Parse the text.
 - Background it: moa:default spawns 3 concurrent models; foreground runs blow the terminal timeout.
+- **Never run the gate with an inline diff via the `moa` provider** — `moa://` is classified as a *local* provider, which drops the compaction threshold to ~48K tokens, so a prompt built from a 20KB+ diff plus project context re-compacts in a loop: the CLI prints `⟳ compacting context…` every ~40s and produces zero output for 10+ minutes while still billing summary calls. Run the gate on a normal model alias instead (`hermes chat -Q --query-file FILE -m pro`); the aggregator is the model that decides the verdict anyway. If the log shows 3+ compaction cycles with no content, kill the run and relaunch on a non-moa alias.
+- Master control gate prompt only (see below)
 - **0-byte output ≠ dead process**: background gates block-buffer stdout, so the log can sit at 0 bytes while the run is healthy (2026-09-30: wrote nothing for 4+ min, then flushed the full verdict). Liveness-check with `process(action='wait', session_id=..., timeout=180)` (requires **session_id**, not process_id) or `/proc/<pid>` — never by output-file size.
 - In cron mode the launch command must not use `nohup`/`disown`/`setsid` (lifecycle guard blocks them) or `rm` (dangerous-command filter: "delete in root path") — the shell `>` redirect already truncates the out file; launch with `terminal(command=..., background=true, notify_on_complete=true)`.
 - `APPROVE` verdicts can still carry `[NIT]` lines; when they are text-only doc fixes, apply them in one small conventional commit before merging (no re-gate needed — the tree moves toward the gate's stated ideal).

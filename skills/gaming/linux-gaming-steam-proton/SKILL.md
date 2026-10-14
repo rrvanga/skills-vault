@@ -43,7 +43,23 @@ Games come and go and the user pivots mid-task (RDR2 → Far Cry 6 in one sittin
 - **User left mid-install?** Set a no_agent cron watchdog (hermes-cron-operations) rather than holding the chat open; completion chain: wait staging → quit Steam → patch → verify → report.
 - **Installs are loud by design**: diagnose fans in one shot (`uptime`, top CPU `ps`, thermal zones, fan RPM) and map them to the pipeline before calling anything wrong.
 
+## GeForce NOW (cloud streaming — different pipeline)
+Not a Proton/local-render job: the official NVIDIA client is a Flatpak app (`com.nvidia.geforcenow`) from NVIDIA's **self-hosted remote** (it is NOT on Flathub — both `com.nvidia.geforcenow` and `com.nvidia.GeForceNow` 404 there). Install system-scope, not `--user`. Needs NVDEC (Vulkan Video h264/h265) on the dGPU. Full commands, failure modes, launch + verification: `references/geforce-now-linux.md`. Launching it from a gateway session requires the desktop env explicitly (see reference) — the gateway's own env has no display.
+
+## "Why didn't game X sync from Steam?" — GFN membership sync is a *filter*, not a mirror
+GFN's **Game Sync / Connections → Steam** only surfaces titles you own that are ALSO in GFN's catalogue (publisher opt-in gate). An unsupported title never appears, no matter the store, region, or resync — Steam ownership is not entitlement to stream. Two failure classes, don't conflate them:
+1. **Title not in the GFN catalogue** → publisher never opted in (or pulled out). Nothing the user can fix. Rockstar is the standing example: Rockstar/Take-Two pulled their titles during the 2019 beta and never opted back in when GFN moved to publisher opt-in in early 2020, so **RDR2 and GTA V are not on GeForce NOW at all** — no Rockstar title is.
+2. **Title supported but missing** → sync didn't run: Steam profile must have *My profile* + *Game details* public and *"always keep playtime private"* UNCHECKED, else sync silently fails. Then Settings → Connections → **RESYNC** (sync is manual per new purchase); private Steam library entries and never-played F2P/demo titles also don't sync (those need MARK AS OWNED).
+
+### Check the live catalogue from the CLI/browser (no account needed)
+`https://www.nvidia.com/en-us/geforce-now/games/` is JS-rendered and its HTML contains **no** catalogue — grepping the HTML for a title gives 0 hits even for supported games, so that test is worthless. Instead drive a real browser: focus `input[placeholder="Search game library..."]` and type via CDP `Input.insertText` (programmatic `value=` sets are ignored by the React app). Verify the search actually works by searching a known-supported title first (e.g. `cyberpunk` → renders `Cyberpunk 2077®`); then search the title in question. Searching `red dead` returns only unrelated partial matches (Dead Cells, Dead by Daylight, Dead Age, Redemption of Liuyin) — that absence IS the answer.
+
+The client's own log is good local corroboration that sync itself ran: `~/.var/app/com.nvidia.geforcenow/.local/state/NVIDIA/GeForceNOW/console.log` → `OwnershipSyncService  Account linking provider: STEAM` / `triggering manual refresh`, and search telemetry as `GameSearchFilterEvent` with `searchQuery` + `totalResults`. Caveat: those `totalResults` counts are fuzzy partial matches, so a nonzero count does NOT mean the title exists — read the rendered card titles, not the count.
+
+Alternatives that do stream RDR2: **Boosteroid** (streams the Steam/Epic/Rockstar PC copy, up to 4K120, ~120 GB first-launch install) — or just play it locally, which on this host (GTX 1650 Max-Q, owns the title) beats both on latency and cost.
+
 ## Support files
+- `references/geforce-now-linux.md` — GFN install/launch/verify, scope gotcha, EOL runtime, sandbox perms.
 - `references/steam-download-monitoring.md` — real progress gauges, ACF field decoding, staging pass, fan-noise diagnosis.
 - `references/localconfig-vdf-patching.md` — VDF structure, safe patch workflow, rollback.
 - `scripts/steam_config_patcher.py` — validated patcher: dry-run, backup, atomic swap, round-trip verify.
