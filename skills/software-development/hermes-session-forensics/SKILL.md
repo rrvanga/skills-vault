@@ -36,6 +36,27 @@ Sessions table holds the REAL API token counts (input/output/cache_read columns;
 
 **Pricing — distinguish TOKENS from DOLLARS before alarming anyone.** The meter lives in `~/.hermes/scripts/token_usage_report.py` (GO_RATES dict, $ per 1M tokens incl. cache_read; comment says what was verified when). Price a session: `calls_in/1e6*rate_in + out/1e6*rate_out + cache/1e6*rate_cache`. Cache_read is ~50x cheaper than input, so giant cache-replay totals (millions of tokens) usually price out to a few cents. Ultra-lightweight session databases but the model is what matters — rerun the same numbers with a pro model's rate to see why routing a chatty task to flash saved real money. On this box, the EVERYTHING-ever grand total across all sessions was ~$19 at flash rates; one long 6-day session ran $0.20. Chart big token numbers with matplotlib for the user (they like quantified visuals) but always pair the token chart with the dollar figure.
 
+## Gateway downtime ("why were you offline?") forensics
+
+Answer with evidence and counts, not a guess. "Offline" is almost always several layers at once — enumerate them separately, each with dates/numbers, before proposing a fix. All read-only:
+
+```bash
+last -x -n 20 reboot shutdown poweroff            # off periods leave NO journal trace
+uptime -s; journalctl --list-boots --no-pager | tail
+journalctl --user -u hermes-gateway --since <date> --no-pager \
+  | grep -E "Started|Stopped|Scheduled restart|Main process exited"
+journalctl --user -u hermes-gateway --since <date> --no-pager | grep -c "Started Hermes Agent Gateway"
+journalctl --user -u <watchdog-unit> --since <date> --no-pager \
+  | grep -oE "HTTP [0-9]{3}" | sort | uniq -c           # per-code totals
+```
+
+Bucket the same grep by day (`awk '{print $1" "$2}' | uniq -c`) to get an incident timeline: a code change (401 -> 410 -> 400) is the provider moving under you, not a network fault.
+
+- **401** = key rejected; **400/410** = model id unknown/retired; **000/5xx** = connectivity. Only the last is an outage to fail over on.
+- Check what the watchdog did about it: `grep -c "Restored:" journalctl --user -u <watchdog>` and `ls ~/.hermes/backups/broken_state | wc -l`. Hundreds of snapshots = the "disaster path" looped and rewrote `config.yaml`/`.env` repeatedly, so config drift since then is a symptom, not a separate bug.
+- Compare config without leaking secrets: `diff <(sed -E 's/(key|token|secret)[^:]*:.*/\1: REDACTED/I' config.yaml) <(same on backups/known-good/config.yaml)`, and `sha256sum .env backups/known-good/.env` (digests only — never `cat .env`, never `hermes config get` on a secret field).
+- **Verify a suspected casualty before blaming the loop:** `grep -c '^DISCORD_BOT_TOKEN=' .env backups/known-good/.env backups/broken_state/.env.*` — presence counts only. If it is absent from *every* snapshot, it was never provisioned; do not report that the restore wiped it.
+
 ## Pitfalls
 
 - `messages.timestamp` is a **unix epoch** — always convert with `datetime(timestamp,'unixepoch','localtime')`.

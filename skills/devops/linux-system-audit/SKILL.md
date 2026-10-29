@@ -33,6 +33,7 @@ Run `scripts/system_sweep.sh` (read-only, writes `/tmp/sysaudit/*.txt`), then re
 | Hardware | hw.txt | zram/swap, temps, top mem/cpu procs |
 
 ## Common findings & fixes (Arch playbook)
+- **Service restarting on a fixed cadence** (every ~15–20 min, config keeps reverting): not a crash loop — a watchdog timer's disaster path rewriting `config.yaml`/`.env` and restarting the unit. Triage with `references/watchdog-restart-loops.md` before touching the service itself.
 - **Pacman cache 5–15 GB** (every version kept forever): `paccache -rk2` keeps the last 2 versions. Zero risk, biggest reclaim (~10+ GB). Needs sudo.
 - **Journal 500 MB+**: `journalctl --vacuum-size=150M`, then cap permanently with `SystemMaxUse=200M` in `/etc/systemd/journald.conf` + `systemctl restart systemd-journald`. Needs sudo.
 - **No firewall** (firewalld/ufw/nftables all inactive = Arch default): behind home NAT exposure is low but there is zero host-level inbound filtering. `pacman -S firewalld` + `systemctl enable --now firewalld` (default public zone blocks inbound; reversible — re-allow LAN needs like sshd via `firewall-cmd --add-service=ssh`). User decision; verify from a second shell.
@@ -52,5 +53,6 @@ Run `scripts/system_sweep.sh` (read-only, writes `/tmp/sysaudit/*.txt`), then re
 - `scripts/system_sweep.sh` — full read-only six-front probe; writes `/tmp/sysaudit/{sys,svc,upd,sec,hermes,hw}.txt`. Run it, read the files, synthesize.
 
 ## References
+- `references/watchdog-restart-loops.md` — self-healing watchdog diagnosis: fixed-cadence restarts, HTTP 401/400/410 vs transport classifiers, stale known-good restores, freeze/verify sequence, secret-safe config diffing.
 - `references/thermal-monitoring.md` — sensor source inventory, thermal_watch.py watchdog design, AND the "why is the laptop hot" diagnosis procedure (timeline-diff, process-tree sums, dGPU residency, daemon checks).
 - `references/drm-display-diagnostics.md` — display/GPU diagnostics: NVIDIA dummy-EDID signature (NVD/1990/640×480 = real EDID never arrived → physical retest), nvidia-smi 'Driver/library version mismatch' = reboot-pending signature (not a broken install), blip-vs-idle-lock triage for "screen turned off and on", EDID TMDS link-budget decode (why a mode drops out), kscreen-doctor probe chain, watcher design for intermittent display events, and this box's GPU topology (externals dGPU-wired, no mux).

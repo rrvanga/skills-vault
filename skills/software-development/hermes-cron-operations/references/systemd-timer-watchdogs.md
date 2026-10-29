@@ -51,6 +51,42 @@ The timer unit pair survives reboots only with `loginctl enable-linger <user>`
 (already in place here). The script must be self-contained (absolute paths; cron
 and systemd both start with $HOME set, but do not rely on interactive env).
 
+## Failure mode: the probe manufactures the outage
+
+A disaster-path watchdog is only as honest as its probe. Proven failure chain:
+the probe POSTed a **hardcoded model id**; the provider retired it (410 Gone,
+then 400 for the renamed id), so every tick recorded a failure, `MAX_FAILS=3`
+fired on a 5m timer, and the script restored a known-good `config.yaml`/`.env`
+and restarted the gateway **every ~18 minutes for days** (hundreds of restarts,
+hundreds of snapshots in `backups/broken_state/`). Symptom the user sees:
+"you were offline for weeks".
+
+Rules that follow:
+
+- **Probe the configured identifier, never a literal.** Read the model from the
+  same file the gateway reads:
+  `MODEL=$(grep -m1 -E '^[[:space:]]+default:' "$CONFIG_FILE" | sed -E 's/^[[:space:]]+default:[[:space:]]*//; s/["'\'']//g')`
+  (same for base_url/key). Fall back to the last-known id only if the grep is empty.
+- **Classify the failure before acting on it.** 000/timeout/5xx = transport →
+  failover or restore is appropriate. **401** = credential rejected, **400/404/410**
+  = identifier retired/unknown → alert only. Restoring config cannot fix these and
+  re-imposing old state is what keeps the loop alive.
+- **Refresh known-good on every healthy run** (not just after manual edits) and
+  snapshot the current files into `backups/broken_state/` before any overwrite —
+  otherwise the rollback is itself fault injection.
+- **Cadence arithmetic finds it fast:** restart period ≈ timer interval × MAX_FAILS.
+  If restarts land on a fixed cadence, suspect the watchdog before the service.
+- **Freeze before fixing:** `systemctl --user stop llm-watchdog.timer` (smallest
+  reversible action) while patching; nothing is deleted.
+- **Proof of fix:** `systemctl --user show llm-watchdog.service -p Result -p ExecMainStatus --value`
+  → `success`/`0`; fail-counter file absent; and
+  `systemctl --user show hermes-gateway -p ActiveEnterTimestamp --value` unchanged
+  (a good run must not restart anything).
+- **Testing it from inside the gateway is refused** (SIGTERM would kill the test):
+  copy the probe logic into a scratch script with no restart branch and run that,
+  then exercise the real unit with `systemctl --user start llm-watchdog.service`
+  and check the result properties above.
+
 ## Pitfall: killing processes with pkill
 
 `pkill -f 'llama-server'` matches YOUR OWN shell's cmdline (the pattern text is in
