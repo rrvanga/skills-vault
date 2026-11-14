@@ -235,5 +235,15 @@ Diff (only line changed): `configured=deepseek-v4.1-flash-free` → `configured=
 - **No action taken:** the correction free→paid was already applied before this tick (the monitor reports it as a diff, not something this run changed). Conservative no-op — rewiring to any free id would swap a healthy model for a throttled one.
 - **Standing caveat (unchanged):** the paid flash id bills against the *same* Go bucket ($80/mo, ~34.7k req/5h), so it is not a safety net against bucket exhaustion; the local `:8081` (llama-server) member is the only distinct lane and it is still not running. Open recommendation still needs user approval (on-demand `:8081` start before failover, or a distinct-provider fallback).
 
+## 2026-11-13 (tick 4) — catalogs moved (`zen81→zen85`, `paid30` + `longcat-2.5-free`); free wall persists, fallback healthy
+
+Diff came off a `fetch=FAIL` baseline: `fallback=ALL-DEAD`, `configured=deepseek-v4.1-flash` (unchanged), `needfix=no`, `free=` still 11 ids (now `beam-free, deepseek-v4.1-flash-free, flint-40b-free, glm-5.3-flash-free, iceman-free, inkling-2-small-free, longcat-2.5-free, mimo-v2.6-flash-free, minimax-m3.1-flash-free, nemotron-3.5-lightning-free, nemotron-3.5-super-vl-free`), `zen85`, `paid30` = 30 ids with **`longcat-2.5-free` new** (plus the earlier `frantic-ferret-free` gone again).
+
+- **Free wall unchanged:** 11/11 live free ids probed (browser UA, 5-token completion) → all **HTTP 429 `FreeUsageLimitError`** in ~0.1 s. Account-wide shared quota, not per-model death; no flip possible.
+- **Window countdown:** `Retry-After: 81439` (~22.6 h, reset ≈ 2026-11-14 16:59 local) vs 17930 on 11-08 → the shared free window is now ~a full day, i.e. free capacity per reset has been cut further.
+- **GO_RATES synced:** added `'longcat-2.5-free': (0.0, 0.0, 0.0, 0.0)` to BOTH `token_usage_report.py` and `morning_context.py` (free SKU on zen/go → $0, same convention as `beam-free` / `iceman-contributor-free`). Both scripts re-run: exit 0, **no unknown-model warnings** (5h 0.3% / 7d 0.7% / 30d 2.7%; per-model deepseek-v4.1-flash $1.62 of $80).
+- **Fallback verified healthy, no config change:** independent ping of `deepseek-v4.1-flash` on zen/v1 → **HTTP 200, real completion** (~0.87 s). Entry 0 unchanged (opencode-go / zen/v1 / OPENCODE_GO_API_KEY), entry 1 = local `:8081` which is still down (`/health` → connection refused, no auto-start).
+- **Cron prompt stale (still):** preferred free order `nemotron-3-ultra-free > hy3-free > nemotron-3.5-lightning-free > deepseek-v4-flash-free > mimo-v2.5-free > laguna-s-2.1-free` — 4 of those 6 ids are retired from every catalog. When the free window reopens, rank from the live `free=` line instead (`nemotron-3.5-lightning-free` / `nemotron-3.5-super-vl-free` are the only surviving legacy ids).
+
 
 
