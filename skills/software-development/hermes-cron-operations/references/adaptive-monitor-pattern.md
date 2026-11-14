@@ -122,3 +122,20 @@ boot into the fallback-activation path, not a cron:
 - Health flip: dead chat endpoint → `fallback=ALL-DEAD` (would fire agent) ✓
 - Live fire: `cronjob action=run` → baseline agent ran, modified nothing,
   reported state, delivery landed ✓ (baseline changed nothing on purpose)
+
+## Addendum 2026-11-08 — free tier quota-exhausted, not catalog-dead
+
+- Catalog drift: `frantic-ferret-free` retired from zen/v1 (zen 81 → 80 ids). No action needed;
+  it was never the configured fallback.
+- `fallback=ALL-DEAD` is now caused by ACCOUNT QUOTA, not missing/retired IDs: every `*-free`
+  model probed with a 5-token chat completion returns `HTTP 429 FreeUsageLimitError`
+  ("Free usage limit reached… subscribe to OpenCode Go"). The monitor's FALLBACK_ORDER already
+  tracks live IDs, so the old "preference list is stale" theory no longer applies.
+- Consequence: the free-tier fallback leg (`fallback_providers.model = deepseek-v4.1-flash-free`)
+  is a dead leg while the quota holds. Primary paid `deepseek-v4.1-flash` is unaffected.
+- Do NOT "fix" this by repointing the fallback at a paid model on zen/v1: paid IDs live on
+  zen/go/v1 and the free key path will 429/401 there. Safe options when the free tier stays
+  exhausted: keep the config as-is (it self-heals when quota resets) or point the second leg at
+  the local llama-server (:8081) per the local-llm-fallback skill.
+- Probe recipe that works (python urllib gets 403 — must send a browser User-Agent):
+  `curl --max-time 30 -X POST https://opencode.ai/zen/v1/chat/completions -H "Authorization: Bearer $OPENCODE_GO_API_KEY" -H 'Content-Type: application/json' -H "User-Agent: Mozilla/5.0 …" -d '{"model":"<id>","messages":[{"role":"user","content":"ok"}],"max_tokens":5}'`

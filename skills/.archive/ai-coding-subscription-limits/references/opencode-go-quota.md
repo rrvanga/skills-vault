@@ -207,4 +207,33 @@ Diff: `zen79→zen77` only (`gemini-3-flash`, `gemini-3.1-pro` gone from zen/v1 
 - **Paid lane healthy:** `deepseek-v4.1-flash` on `zen/go/v1` → **HTTP 200 real completion in 1.76 s** (finish_reason length) → primary path unaffected.
 - **Second fallback still down:** `127.0.0.1:8081/health` → connection refused (000), `llama-server` unit inactive/not-found → fallback chain again has **zero** working members, exactly as on 10-29. Nothing changed on the open recommendation (needs user approval: start :8081 on demand, or approve a distinct-provider fallback) — note 10-29's finding that a paid fallback on zen/v1 burns the *same* Go bucket, so it is no safety net against bucket exhaustion.
 
+## 2026-11-08 — 3 new free SKUs + paid `hy4` graduated from `hy4-preview`; free tier still walled
+
+Diff: `free7→free10` (**crouton-alpha-free, iceman-free, inkling-2-small-free**), `paid28→paid30` (**crouton-alpha-free** — free SKU also mirrored on the zen/go catalog — and **hy4**), `zen77→zen80` (same three free ids). `fallback=ALL-DEAD`, `configured=deepseek-v4.1-flash-free`, `needfix=no`.
+
+- **Free tier still account-wide 429:** all 10 live free ids swept with browser UA → **10/10 HTTP 429 `FreeUsageLimitError`** (fast, uniform) — same shared-quota wall as 10-29/10-30, not per-model death and not the old 403 console gate. New SKUs behave identically to the old ones, so none of them is a usable fallback while the wall stands.
+- **No config change (rule 2 practice):** with every free id throttled equally and `configured` already the top of the monitor's `FALLBACK_ORDER`, a flip would swap one dead model for another. Conservative no-op; re-evaluate on the first tick after the quota window resets.
+- **Priced `hy4` (GUESS)** in BOTH `~/.hermes/scripts/token_usage_report.py` + `morning_context.py`: `(0.834, 2.501, 0.042, 0.0)` ≈ `hy4-preview` (the preview id graduated; no docs pricing row yet), plus `GO_MODEL_MONTHLY['hy4'] = 30` (GUESS) and `PER_MODEL_REQ_CAPS['hy4'] = 1350` (GUESS ~ hy4-preview) in `token_usage_report.py`. `crouton-alpha-free` / `iceman-free` / `inkling-2-small-free` added at `(0.0, 0.0, 0.0, 0.0)` with probe notes, so the meter can never mis-price a free lane at flash rate.
+- Verified: both scripts re-run → **exit 0, zero unknown-model warnings** (`token_usage_report.py`, `morning_context.py` both match on rates). `go.mdx` raw fetch returned empty → official cross-check unavailable this tick, hence GUESS markers.
+
+## 2026-11-08 (tick 2) — free10→free11: new `frantic-ferret-free`; wall still on (~5 h left)
+
+Diff: `free10→free11` and `zen80→zen81`, both only **`frantic-ferret-free`** (new free SKU, present on zen/v1 only — *not* in `paid30`). `paid30` unchanged → no `GO_RATES` work. `fallback=ALL-DEAD`, `configured=deepseek-v4.1-flash-free`, `needfix=no`.
+
+- **Free wall unchanged, one window shared:** 16-id sweep with browser UA → 5 retired ids 400 `Model is unavailable` (`nemotron-3-ultra-free`, `hy3-free`, `deepseek-v4-flash-free`, `mimo-v2.5-free`, `laguna-s-2.1-free` — expected, long retired) and **11/11 live free ids 429 `FreeUsageLimitError`**, `frantic-ferret-free` included → new SKU is live but throttled identically. No 200 anywhere, so no fallback flip was possible.
+- **Window countdown:** `Retry-After: 17930` (~4.98 h; reset ≈ 2026-11-09 00:00 UTC) on the `frantic-ferret-free` probe, vs 32234 (10-30) and 75504 (10-29) → shared per-account free window, draining.
+- **No config change (rule 2 practice):** every free id is equally 429, so flipping `fallback_providers.0.model` swaps one throttled model for another. Conservative no-op; re-evaluate on the first tick after reset.
+- **Fallback chain still has ZERO working members:** `127.0.0.1:8081/health` → connection refused, `llama-server` not running (unchanged since 10-29). Open recommendation unchanged and still needs user approval (on-demand `:8081` start before failover, or a distinct-provider fallback; a paid fallback on zen/v1 burns the same Go bucket, so it is no net).
+- Housekeeping: this skill now lives under `~/.hermes/skills/.archive/ai-coding-subscription-limits/` — reference path in the cron prompt is stale (harmless; file found and updated).
+
+## 2026-11-08 (tick 3) — `configured` moved off the free tier: `deepseek-v4.1-flash-free` → paid `deepseek-v4.1-flash` (healthy)
+
+Diff (only line changed): `configured=deepseek-v4.1-flash-free` → `configured=deepseek-v4.1-flash`. `fallback=ALL-DEAD`, `free=` (10 live free ids), `paid30`, `zen80` all identical → no `GO_RATES` work (no new paid model).
+
+- **Config verified healthy:** `hermes config get fallback_providers` → entry 0 = provider `opencode-go`, model `deepseek-v4.1-flash`, base_url `https://opencode.ai/zen/v1`, key_env `OPENCODE_GO_API_KEY` (entry 1 = local custom `gemma-4-12b-it-Q4_K_M` @ 127.0.0.1:8081, untouched). Independent ping: **HTTP 200, real completion** — the paid flash id works on zen/v1, so the fallback chain is no longer dead.
+- **Free wall unchanged:** 10/10 live free ids swept (browser UA) → **HTTP 429 `FreeUsageLimitError`** (uniform shared-quota wall, same as ticks 1–2). Not per-model death; no free flip possible or useful.
+- **No action taken:** the correction free→paid was already applied before this tick (the monitor reports it as a diff, not something this run changed). Conservative no-op — rewiring to any free id would swap a healthy model for a throttled one.
+- **Standing caveat (unchanged):** the paid flash id bills against the *same* Go bucket ($80/mo, ~34.7k req/5h), so it is not a safety net against bucket exhaustion; the local `:8081` (llama-server) member is the only distinct lane and it is still not running. Open recommendation still needs user approval (on-demand `:8081` start before failover, or a distinct-provider fallback).
+
+
 
