@@ -245,5 +245,15 @@ Diff came off a `fetch=FAIL` baseline: `fallback=ALL-DEAD`, `configured=deepseek
 - **Fallback verified healthy, no config change:** independent ping of `deepseek-v4.1-flash` on zen/v1 → **HTTP 200, real completion** (~0.87 s). Entry 0 unchanged (opencode-go / zen/v1 / OPENCODE_GO_API_KEY), entry 1 = local `:8081` which is still down (`/health` → connection refused, no auto-start).
 - **Cron prompt stale (still):** preferred free order `nemotron-3-ultra-free > hy3-free > nemotron-3.5-lightning-free > deepseek-v4-flash-free > mimo-v2.5-free > laguna-s-2.1-free` — 4 of those 6 ids are retired from every catalog. When the free window reopens, rank from the live `free=` line instead (`nemotron-3.5-lightning-free` / `nemotron-3.5-super-vl-free` are the only surviving legacy ids).
 
+## 2026-11-15 (tick 5) — paid catalog `paid30→paid31` (+`qwen4-max`, priced as GUESS); free wall persists, fallback healthy
+
+Diff (two lines): `paid30=…` → `paid31=…` with **`qwen4-max` new**, and `zen85`/`free=`/`configured=` unchanged. `fallback=ALL-DEAD` (unchanged), `needfix=no`.
+
+- **`qwen4-max` priced by sibling analogy** (`qwen3.8-max`): `(2.00, 6.00, 0.25, 2.50)` @ assumed $15/mo, 160 req/5h — added to `GO_RATES` in BOTH `token_usage_report.py` and `morning_context.py`, plus `GO_MODEL_MONTHLY` (both) and `PER_MODEL_REQ_CAPS` (token_usage_report only; morning_context has no such table). Every new entry carries `# GUESS`.
+- **No published rate to verify against:** live https://opencode.ai/docs/go lists "Qwen4 Max / qwen4-max" in the model table only — no pricing row and no estimated-requests row yet. The cron prompt's cross-check URL (`raw.githubusercontent.com/anomalycha/opencode/.../go.mdx`) now returns **404**. Note `qwen3.7-max` ran 25% higher than `qwen3.8-max`, so this GUESS may slightly *undercount*; re-verify when docs publish a row.
+- **Both scripts re-run clean:** exit 0, **no unknown-model warnings** (5h 0.2% / 7d 1.2% / 30d 2.1%; per-model `deepseek-v4.1-flash` $1.13 of $80).
+- **Free wall unchanged:** 12/12 probed with browser UA + 5-token completion → 11 × **429 `FreeUsageLimitError`**, plus `hy3-free` → **400 "Model is unavailable"** (that id is retired from every catalog; it is still listed in the cron prompt's preference order — stale, ignore it). No free flip possible or useful.
+- **No config change (rule 2 practice):** fallback entry 0 remains `opencode-go / deepseek-v4.1-flash / https://opencode.ai/zen/v1 / OPENCODE_GO_API_KEY`; entry 1 = local custom `:8081` (llama-server still not running). Paid fallback is healthy (independent ping → 200, real completion) but bills the same Go bucket, so the standing recommendation (on-demand `:8081` start, or a distinct-provider fallback) is still open and still needs user approval.
+
 
 
