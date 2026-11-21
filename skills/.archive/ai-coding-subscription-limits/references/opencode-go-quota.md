@@ -257,3 +257,13 @@ Diff (two lines): `paid30=…` → `paid31=…` with **`qwen4-max` new**, and `z
 
 
 
+
+### 2026-11-16 — monitor `fetch=FAIL` (transient) + new free SKU `hy4-flash-free`
+- Monitor tick diffed to `fetch=FAIL` (a single-line fetch failure); the previous tick was `fallback=ALL-DEAD`. Manual re-fetch of both catalogs succeeded (HTTP 200), so the FAIL was transient transport, not a catalog change.
+- Live catalogs this run: `zen/v1` n=85, free SKUs (11): `beam-free; deepseek-v4.1-flash-free; flint-40b-free; glm-5.3-flash-free; hy4-flash-free; iceman-free; inkling-2-small-free; longcat-2.5-free; mimo-v2.6-flash-free; nemotron-3.5-lightning-free; nemotron-3.5-super-vl-free`. `zen/go/v1` n=32 paid IDs.
+- **Delta:** `hy4-flash-free` is NEW (absent from the previous paid list, now also on the zen/go paid catalog); `minimax-m3.1-flash-free` dropped out of the free list (paid `minimax-m3.1-flash` still present).
+- **Free tier still fully unusable:** 5-token probes to `nemotron-3.5-lightning-free`, `deepseek-v4.1-flash-free`, `hy4-flash-free`, `mimo-v2.6-flash-free`, `beam-free` → all HTTP 429 `FreeUsageLimitError` (account-wide free quota). So `fallback=ALL-DEAD` in the previous tick remains accurate for the free tier; no free flip is possible.
+- **Pricing:** added `'hy4-flash-free': (0.0, 0.0, 0.0, 0.0)` — `# GUESS` — to `GO_RATES` in BOTH `token_usage_report.py` and `morning_context.py` (free-SKU convention: free SKUs listed on the zen/go catalog bill $0, cf. `beam-free`, `iceman-contributor-free`, `longcat-2.5-free`). No docs row exists for `hy4*` in opencode `docs/go.mdx` (grep returned nothing), so no verified rate to cross-check.
+- **Verification:** both scripts re-run → exit 0, no unknown-model warnings.
+- **Config:** unchanged. fallback entry 0 = `opencode-go / deepseek-v4.1-flash / https://opencode.ai/zen/v1 / OPENCODE_GO_API_KEY`; independent 5-token ping → HTTP 200 (healthy, but bills the Go bucket).
+- Note: the cron prompt's free-model preference order (`nemotron-3-ultra-free > hy3-free > … > laguna-s-2.1-free`) still references IDs that no longer exist on any catalog — stale, ignore.
