@@ -277,3 +277,23 @@ Diff (two lines): `paid30=…` → `paid31=…` with **`qwen4-max` new**, and `z
 - **Script sync:** added two new free SKUs as `(0.0, 0.0, 0.0, 0.0)` with `# GUESS` markers — `jev-1.13-free` (paid sibling `jev-1.13`) and `tidepool-alpha-free` — to `GO_RATES` in BOTH `~/.hermes/scripts/token_usage_report.py` and `~/.hermes/scripts/morning_context.py`. Both scripts re-run: exit 0, no unknown-model warnings.
 - **Monitor staleness (not fixed, flagged):** `FALLBACK_ORDER` in `adaptive_monitor.py` still lists retired `glm-5.3-flash-free` and omits five live free SKUs (`hy4-flash-free`, `iceman-free`, `jev-1.13-free`, `longcat-2.5-free`, `tidepool-alpha-free`). Harmless while the whole free tier is 429, but it can produce a false `ALL-DEAD` if an unmonitored SKU recovers alone. Additive fix deferred (each added model costs up to 2×30s probe pings per tick).
 - **Note:** this reference file now lives under `~/.hermes/skills/.archive/ai-coding-subscription-limits/` (skill archived in the default profile); an active copy exists in the `horcrux` profile, which was not touched.
+
+
+## Addendum — 2026-11-22 (Go monitor: LongCat lineage shift; free tier still 429)
+
+- **Diff:** free 11→10, paid31→30, zen104→103. `longcat-2.0` dropped from the paid catalog, `longcat-2.5-free` dropped from both catalogs, and paid `longcat-2.5` appeared on zen/go (zen/v1 too). Classic free-preview → paid graduation for the LongCat line.
+- **Pricing:** added `'longcat-2.5': (0.30, 1.20, 0.006, 0.0)` — `# GUESS` ~ `longcat-2.0` — to `GO_RATES` in BOTH `token_usage_report.py` and `morning_context.py`. Reason: no published per-token row exists. `https://opencode.ai/docs/go` only mentions LongCat 2.5 in retention/region notes (hosted in China, workspace must enable Global regions); the raw `go.mdx` GitHub path cited in the cron prompt now returns **404** (repo moved/renamed) — use the rendered docs page instead.
+- **Verification:** both scripts re-run → exit 0, **no unknown-model warnings**.
+- **Free tier:** probed all 10 live `-free` SKUs (beam, deepseek-v4.1-flash, flint-40b, hy4-flash, iceman, jev-1.13, mimo-v2.6-flash, nemotron-3.5-lightning, nemotron-3.5-super-vl, tidepool-alpha) with browser-UA + 5-token completions → **10/10 HTTP 429 `FreeUsageLimitError`**. Still account-wide free-quota exhaustion, not a catalog outage; `fallback=ALL-DEAD` remains accurate and no flip is possible.
+- **Config:** unchanged/correct — `fallback_providers[0]` = `opencode-go / deepseek-v4.1-flash / https://opencode.ai/zen/v1 / OPENCODE_GO_API_KEY`.
+- **Monitor staleness (still open):** `adaptive_monitor.py`'s `FALLBACK_ORDER` still lists IDs retired long ago and misses most of the live free set; harmless while everything 429s, but it can mis-report ALL-DEAD if an untracked SKU recovers alone.
+
+## Addendum — 2026-11-22 12:01 (Go monitor: zen103→104, `jev-1.14` only; free wall unchanged)
+
+- **Diff:** single-line change — `zen103→zen104` (+`jev-1.14`). `free=` set identical (10 SKUs), `paid30` identical, `fallback=ALL-DEAD` **unchanged from the previous tick**, `configured=deepseek-v4.1-flash`, `needfix=no`.
+- **New id `jev-1.14`:** zen/v1-only (absent from zen/go paid catalog) → **not a paid model, no `GO_RATES` entry added**. Probe on `/chat/completions` → **HTTP 400 `ModelProtocolUnsupported`** ("Model does not support this protocol"), so it is not a chat SKU (likely embeddings/other protocol). Nothing to price or route to.
+- **Free tier:** re-probed all 10 live `-free` SKUs + `jev-1.14` with 5-token completions → **10/10 HTTP 429 `FreeUsageLimitError`**, full body: *"Free usage limit reached. Free models work in OpenCode (https://opencode.ai); subscribe to OpenCode Go to keep going: https://opencode.ai/go"*. Account-wide free-quota exhaustion continues (wall began 10-29); `ALL-DEAD` remains accurate.
+- **Paid/primary leg healthy:** `POST https://opencode.ai/zen/v1/chat/completions` with `deepseek-v4.1-flash` → **HTTP 200** (0.6 s). Agent traffic is unaffected; config left untouched (no flip possible, no flip needed).
+- **Scripts:** no edits needed (no new paid SKU). Re-ran both `morning_context.py` and `token_usage_report.py` → **exit 0, zero unknown-model warnings**.
+- **Note:** bare zen/go probes without the `x-opencode-session` header now fail with **`MissingSessionID`** — include a `sess-*` header when testing the paid catalog directly.
+- **Still open:** `FALLBACK_ORDER` staleness (`glm-5.3-flash-free` retired, 5 live free SKUs unlisted) — unchanged, deferred.
